@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -1423,5 +1424,18 @@ public class DocumentRoutingServiceImpl extends DefaultComponent implements Docu
             }
             return false;
         });
+    }
+
+    /**
+     *
+     * @since 11.3
+     */
+    @Override
+    public List<DocumentRoute> getRunnableWorkflows(CoreSession session, List<String> documentIds) {
+        List<DocumentModel> routeModels = searchRouteModels(session, "");
+        return routeModels.stream()
+                .filter(route -> !canCreateInstance(session, documentIds, route.getName()))
+                .map(document -> document.getAdapter(DocumentRoute.class))
+                .collect(Collectors.toList());
     }
 }

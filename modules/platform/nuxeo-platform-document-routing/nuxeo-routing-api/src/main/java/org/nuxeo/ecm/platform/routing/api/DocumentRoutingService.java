@@ -630,4 +630,11 @@ public interface DocumentRoutingService {
      */
     boolean canCreateInstance(CoreSession session, List<String> documentIds, String worflowModelName);
 
+    /**
+     * Returns a list of runnable DocumentRoute for the input document IDs
+     * @param documentIds
+     * @since 11.3
+     */
+    List<DocumentRoute> getRunnableWorkflows(CoreSession session, List<String> documentIds);
+
 }
