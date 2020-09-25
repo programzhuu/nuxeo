@@ -67,6 +67,9 @@ import org.nuxeo.ecm.core.event.EventProducer;
 import org.nuxeo.ecm.core.event.impl.DocumentEventContext;
 import org.nuxeo.ecm.core.query.sql.NXQL;
 import org.nuxeo.ecm.core.repository.RepositoryInitializationHandler;
+import org.nuxeo.ecm.platform.actions.ActionContext;
+import org.nuxeo.ecm.platform.actions.ELActionContext;
+import org.nuxeo.ecm.platform.actions.ejb.ActionManager;
 import org.nuxeo.ecm.platform.filemanager.api.FileImporterContext;
 import org.nuxeo.ecm.platform.filemanager.api.FileManager;
 import org.nuxeo.ecm.platform.query.api.PageProvider;
@@ -1387,5 +1390,38 @@ public class DocumentRoutingServiceImpl extends DefaultComponent implements Docu
     @Override
     public boolean isWorkflowModel(final DocumentRoute documentRoute) {
         return documentRoute.isValidated();
+    }
+
+    /**
+     *
+     * @since 11.3
+     */
+    @Override
+    public boolean canCreateInstance(CoreSession session, List<String> documentIds, String workflowModelName) {
+
+        DocumentModelList docs = session.getDocuments((DocumentRef[]) documentIds.stream().map(id -> new IdRef(id)).toArray());
+
+        DocumentRoute routeModel = getRouteModelWithId(session,workflowModelName);
+
+        ActionManager actionManager = Framework.getService(ActionManager.class);
+
+        return docs.stream().anyMatch(doc -> {
+            ActionContext actionContext = new ELActionContext();
+            actionContext.setCurrentDocument(doc);
+            actionContext.setDocumentManager(session);
+            actionContext.setCurrentPrincipal(session.getPrincipal());
+
+            GraphRoute graphRouteObj = routeModel.getDocument().getAdapter(GraphRoute.class);
+
+            if (graphRouteObj != null) {
+                String filter = graphRouteObj.getAvailabilityFilter();
+                if (!StringUtils.isBlank(filter)) {
+                    if (!actionManager.checkFilter(filter, actionContext)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
     }
 }
